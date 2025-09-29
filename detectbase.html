@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Base Analyzer</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    textarea { width: 100%; height: 100px; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+    .ok { color: green; }
+    .fail { color: red; }
+  </style>
+</head>
+<body>
+  <h2>🔍 Base String Analyzer</h2>
+  <p>ใส่ข้อความที่ต้องการวิเคราะห์:</p>
+  <textarea id="inputText"></textarea><br><br>
+  <button onclick="runAnalysis()">Analyze</button>
+
+  <h3>ผลลัพธ์:</h3>
+  <pre id="output"></pre>
+
+<script>
+function analyzeBase(input) {
+    const bases = {
+        "Base16 (Hex)": "0123456789ABCDEFabcdef",
+        "Base32": "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567=",
+        "Base58": "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz",
+        "Base62": "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+        "Base64": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",
+        "Base85 (Ascii85)": "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxy",
+        "Base91": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%&()*+,./:;<=>?@[]^_`{|}~\""
+    };
+
+    let result = {};
+
+    for (let [name, charset] of Object.entries(bases)) {
+        let invalidChars = [];
+        for (let c of input) {
+            if (!charset.includes(c)) {
+                invalidChars.push(c);
+            }
+        }
+        result[name] = {
+            possible: invalidChars.length === 0,
+            invalid: [...new Set(invalidChars)]
+        };
+    }
+
+    return result;
+}
+
+// ฟังก์ชันถอดรหัสอัตโนมัติ
+function tryDecode(input, baseName) {
+    try {
+        if (baseName === "Base64") {
+            return atob(input);
+        }
+        if (baseName === "Base16 (Hex)" && /^[0-9a-fA-F]+$/.test(input)) {
+            return new TextDecoder().decode(
+                new Uint8Array(input.match(/.{1,2}/g).map(byte => parseInt(byte, 16)))
+            );
+        }
+        if (baseName === "Base32") {
+            // ใช้ lib จะง่ายกว่า แต่ demo นี้ขอทำ minimal
+            return "(Need external lib for Base32 decode)";
+        }
+        if (baseName === "Base58") {
+            return "(Need external lib for Base58 decode)";
+        }
+        if (baseName === "Base85 (Ascii85)") {
+            return "(Need external lib for Base85 decode)";
+        }
+        if (baseName === "Base91") {
+            return "(Need external lib for Base91 decode)";
+        }
+    } catch (e) {
+        return "⚠️ Decode failed";
+    }
+    return null;
+}
+
+function runAnalysis() {
+    const input = document.getElementById("inputText").value.trim();
+    if (!input) {
+        document.getElementById("output").textContent = "กรุณาใส่ข้อความก่อน";
+        return;
+    }
+
+    let analysis = analyzeBase(input);
+    let output = `Input: ${input}\n\n`;
+
+    for (let [base, data] of Object.entries(analysis)) {
+        if (data.possible) {
+            let decoded = tryDecode(input, base);
+            output += `✅ ${base} → Possible\n`;
+            if (decoded) output += `   🔽 Decoded: ${decoded}\n`;
+        } else {
+            output += `❌ ${base} → Invalid chars: ${data.invalid.join(" ")}\n`;
+        }
+        output += "\n";
+    }
+
+    document.getElementById("output").textContent = output;
+}
+</script>
+</body>
+</html>
